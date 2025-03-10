@@ -2,7 +2,7 @@ services:
   frontend:
     build: ./app/frontend
     ports:
-      - "127.0.0.1:8050:8050"
+      - "0.0.0.0:8050:8050" # allow access from any device on LAN
     networks:
       - frontend-network
       - backend-network
