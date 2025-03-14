@@ -71,7 +71,7 @@ def schedule_map_generation():
     while True:
         try:
             now = datetime.now()
-            frontend_logger.info(f"Checking time... {now.strftime('%Y-%m-%d %H:%M:%S')}")
+            frontend_logger.info(f"Scheduler is alive")
 
             if now.hour in [6, 18] and now.minute in [0, 1, 2]: # generate at 6 and 18 with buffer window
                 run_map_generator()
