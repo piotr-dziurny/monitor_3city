@@ -42,7 +42,9 @@ def run_spider():
     scheduler_logger.info("Starting spider...")
     try:
         process = CrawlerProcess(get_project_settings())
+        scheduler_logger.info("CrawlerProcess initialized successfully")
         process.crawl(OgloszeniaSpider)
+        scheduler_logger.info("Spider crawl process started successfully")
         process.start()
         scheduler_logger.info("Spider run completed successfully")
     except Exception as e:
