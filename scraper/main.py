@@ -5,6 +5,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from ogloszenia_trojmiasto.spiders.ogloszenia import OgloszeniaSpider
 from pathlib import Path
+import traceback
 
 # log dir setup
 log_dir = Path("/scraper/logs")
@@ -19,7 +20,7 @@ def setup_logger():
     
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     
-    file_handler = logging.FileHandler(log_file)
+    file_handler = logging.FileHandler(log_file, delay=False)
     file_handler.setFormatter(formatter)
     
     stream_handler = logging.StreamHandler()
@@ -27,6 +28,8 @@ def setup_logger():
     
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
+
+    file_handler.flush()
     
     return logger
 
@@ -43,7 +46,9 @@ def run_spider():
         process.start()
         scheduler_logger.info("Spider run completed successfully")
     except Exception as e:
-        scheduler_logger.error(f"Error during spider startup: {str(e)}")
+        error_info = traceback.format_exc()
+        scheduler_logger.error(f"Error during spider startup: {str(e)}\n{error_info}")
+  
 
 def run_scraping_session(is_initial=False):
     """

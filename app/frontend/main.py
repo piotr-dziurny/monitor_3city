@@ -19,15 +19,17 @@ def setup_logger():
     
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
      
-    file_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=10*1024*1024, # 10MB per file
-        backupCount=3
-    )
-
+    file_handler = logging.FileHandler(log_file, delay=False)
     file_handler.setFormatter(formatter)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
     logger.addHandler(file_handler)
-    
+    logger.addHandler(stream_handler)
+
+    file_handler.flush()
+
     return logger
 
 frontend_logger = setup_logger()
@@ -67,14 +69,19 @@ def schedule_map_generation():
     schedule map generation at 6:00 and 18:00 daily
     """
     while True:
-        now = datetime.now()
-        if now.hour in [6, 18] and now.minute == 0:
-            run_map_generator()
-            time.sleep(60)  # sleep to avoid multiple runs
-            
-            next_run = get_next_run_date()
-            frontend_logger.info(f"Next map generation scheduled for {next_run.strftime("%Y-%m-%d %H:%M")}")
-        time.sleep(60) # check every minute
+        try:
+            now = datetime.now()
+            frontend_logger.info(f"Checking time... {now.strftime('%Y-%m-%d %H:%M:%S')}")
+
+            if now.hour in [6, 18] and now.minute in [0, 1, 2]: # generate at 6 and 18 with buffer window
+                run_map_generator()
+                time.sleep(60*3)  # sleep to avoid multiple runs
+                
+                next_run = get_next_run_date()
+                frontend_logger.info(f"Next map generation scheduled for {next_run.strftime("%Y-%m-%d %H:%M")}")
+            time.sleep(10) # check every 10s 
+        except Exception as e:
+            frontend_logger.error(f"Scheduler encountered error: {str(e)}")
 
 def main():
     """
