@@ -43,9 +43,12 @@ def run_spider():
     try:
         process = CrawlerProcess(get_project_settings())
         scheduler_logger.info("CrawlerProcess initialized successfully")
+
         process.crawl(OgloszeniaSpider)
         scheduler_logger.info("Spider crawl process started successfully")
+
         process.start()
+        process.stop() # stop the process - otherwise there's errors when running next session
         scheduler_logger.info("Spider run completed successfully")
     except Exception as e:
         error_info = traceback.format_exc()
