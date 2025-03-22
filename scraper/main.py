@@ -1,3 +1,4 @@
+import subprocess
 import time
 import logging
 from datetime import datetime, timedelta
@@ -37,22 +38,23 @@ scheduler_logger = setup_logger()
 
 def run_spider():
     """
-    run the spider
+    run the spider; use subprocess since CrawlerProcess cannot be restarted
     """
     scheduler_logger.info("Starting spider...")
     try:
-        process = CrawlerProcess(get_project_settings())
-        scheduler_logger.info("CrawlerProcess initialized successfully")
+        result = subprocess.run(
+            ["scrapy", "crawl", "ogloszenia"],
+            capture_output=True,
+            text=True,
+        )
+        scheduler_logger.info(f"Spider stdout: {result.stdout}")
+        if result.stderr:
+                scheduler_logger.error(f"Spider stderr: {result.stderr}")
 
-        process.crawl(OgloszeniaSpider)
-        scheduler_logger.info("Spider crawl process started successfully")
-
-        process.start()
-        process.stop() # stop the process - otherwise there's errors when running next session
         scheduler_logger.info("Spider run completed successfully")
     except Exception as e:
         error_info = traceback.format_exc()
-        scheduler_logger.error(f"Error during spider startup: {str(e)}\n{error_info}")
+        scheduler_logger.error(f"Error running spider as subprocess: {str(e)}\n{error_info}")
   
 
 def run_scraping_session(is_initial=False):
