@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-
 class DatabaseHelper:
     def __init__(self):
         """
@@ -51,8 +50,7 @@ class DatabaseHelper:
             longitude DECIMAL(15, 12),
             created_ts TIMESTAMP,
             scraped_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_latest BOOLEAN NOT NULL DEFAULT 1,
-            UNIQUE KEY url_latest (url, is_latest)
+            is_latest BOOLEAN NOT NULL DEFAULT 1
         )
         """
 
@@ -82,7 +80,7 @@ class DatabaseHelper:
         query = "UPDATE scraped_items SET is_latest = 0 WHERE url = %s AND is_latest = 1"
         try:
             self.cursor.execute(query, (url,))
-            self.conn.commit()
+            # self.conn.commit()
         except mysql.connector.Error as error:
             print(f"Error updating is_latest: {error}")
 
@@ -120,18 +118,21 @@ class DatabaseHelper:
         return False  # no changes detected
 
 
-    def insert_item(self, item):
+    def insert_item(self, item, update_old):
         """
-        insert new item into the database.
-        """
-
-        query = """
-        INSERT IGNORE INTO scraped_items (url, title, price, price_per_sqr_meter, rooms, floor, square_meters, year, address, city, area,
-        coastline_distance, gdynia_downtown_distance, gdansk_downtown_distance, sopot_downtown_distance, latitude, longitude, created_ts, scraped_ts, is_latest)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-
+        insert new item into the database. If update_old is True, set is_latest = 0 for the latest entry with the same url.
         """
         try:
+            if update_old:
+                update_query = "UPDATE scraped_items SET is_latest = 0 WHERE url = %s AND is_latest = 1"
+                self.cursor.execute(update_query, (item["url"],))
+
+            query = """
+            INSERT IGNORE INTO scraped_items (url, title, price, price_per_sqr_meter, rooms, floor, square_meters, year, address, city, area,
+            coastline_distance, gdynia_downtown_distance, gdansk_downtown_distance, sopot_downtown_distance, latitude, longitude, created_ts, scraped_ts, is_latest)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+
+            """
             self.cursor.execute(query, (
                 item["url"],
                 item["title"],
@@ -158,6 +159,7 @@ class DatabaseHelper:
             self.conn.commit()
         except mysql.connector.Error as error:
             print(f"Error inserting values to the table: {error}")
+            self.conn.rollback()
 
     def close(self):
         self.cursor.close()

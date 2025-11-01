@@ -21,6 +21,5 @@ CREATE TABLE IF NOT EXISTS scraped_items (
     longitude DECIMAL(15, 12),
     created_ts TIMESTAMP,
     scraped_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_latest BOOLEAN NOT NULL DEFAULT 1,
-    UNIQUE KEY url_latest (url, is_latest)
+    is_latest BOOLEAN NOT NULL DEFAULT 1
   );

@@ -110,7 +110,7 @@ class DatabasePipeline:
                 # data changed - update old record and insert new one:
                 self.db_helper.update_is_latest(url) # set old item to is_latest = 0
                 item["is_latest"] = 1 # set current item to is_latest = 1
-                self.db_helper.insert_item(item)
+                self.db_helper.insert_item(item, update_old=True)
                 spider.logger.info(f"Data changed for {url} - inserted new row and updated is_latest")
             else:
                 # data unchanged - update scraped_ts
@@ -119,7 +119,7 @@ class DatabasePipeline:
         else:
             # new listing - insert and set is_latest = 1
             item["is_latest"] = 1
-            self.db_helper.insert_item(item)
+            self.db_helper.insert_item(item, update_old=False)
             spider.logger.info(f"New entry for {url} - inserted into database")
             
         return item
