@@ -15,7 +15,7 @@ A comprehensive monitoring tool for real estate listings in the Trójmiasto area
 .
 ├── app
 │   ├── backend
-│   │   ├── database.py                         # SQLAlchemy setup
+│   │   ├── database.py                         # MySQL setup
 │   │   ├── Dockerfile                          # Fast API application
 │   │   ├── main.py                             # API endpoints
 │   │   └── requirements.txt
@@ -44,9 +44,8 @@ A comprehensive monitoring tool for real estate listings in the Trójmiasto area
     │   ├── middlewares.py
     │   ├── pipelines.py
     │   ├── settings.py                         # Scraper configuration
-    │   ├── shapefiles                          # Shapefiles needed for geodistance.y
-    │   │   ├── Europe_coastline_shapefile
-    │   │   └── ne_110m_admin_0_countries
+    │   ├── shapefiles                          # Shapefiles needed for geodistance.py
+    │   │   └── PZP.POM.shp
     │   └── spiders
     │       └── ogloszenia.py                   # Main spider
     ├── requirements.txt
@@ -167,6 +166,8 @@ CREATE TABLE scraped_items (
     sopot_downtown_distance FLOAT,
     latitude DECIMAL(15, 12),
     longitude DECIMAL(15, 12),
+    bbox VARCHAR(255),
+    bbox VARCHAIR(255),
     created_ts TIMESTAMP,
     scraped_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_latest BOOLEAN NOT NULL DEFAULT 1,
@@ -178,6 +179,7 @@ CREATE TABLE scraped_items (
     * natural key: `url`
     * version tracking: `is_latest` boolean flag
     * timestamps: `created_ts` and `scraped_ts`
+    * index: on `url` and `is_latest` for efficient querying
 * Version logic:
     * new listings are inserted with `is_latest = 1`
     * duplicate listings (within 7 days) are skipped
@@ -199,7 +201,7 @@ Additional processing details:
 > * 7-day change detection window 
 > * automated version flag management 
 
-#### Data fields:
+#### Scraped fields:
 * **url**: URL of the listing
 * **title**: title of the listing
 * **price**: price of the apartment
@@ -211,7 +213,7 @@ Additional processing details:
 * **address**: address of the apartment
 * **city**: city/town/village in which the apartment is located
 
-#### Synthetic fields: 
+#### Additional fields: 
 * **coastline_distance**: distance from the apartment to the nearest point on the coastline
 * **gdynia_downtown_distance**: distance from the apartment to the downtown of Gdynia
 * **gdansk_downtown_distance**: distance from the apartment to the downtown of Gdańsk
@@ -219,6 +221,7 @@ Additional processing details:
 * **area**: district or county in which the apartment is located
 * **latitude**: geographic latitude
 * **longitude**: geographic longitude
+* **bbox**: bounding box of the address
 
 
 ### Frontend Features
@@ -265,7 +268,3 @@ docker system prune
 * **Backups**: automated database backups
 * **Visualizations**: more advanced analytics and visualizations
 * **Permissions**: switch from Docker volumes to bind mounts for logging to improve accessibility while maintaining container security best practices
-
-## Sources
-* https://www.naturalearthdata.com/downloads/110m-cultural-vectors/
-* https://www.eea.europa.eu/data-and-maps/data/eea-coastline-for-analysis-1/gis-data/europe-coastline-shapefile

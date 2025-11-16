@@ -48,6 +48,7 @@ class DatabaseHelper:
             sopot_downtown_distance FLOAT,
             latitude DECIMAL(15, 12),
             longitude DECIMAL(15, 12),
+            bbox VARCHAR(255),
             created_ts TIMESTAMP,
             scraped_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             is_latest BOOLEAN NOT NULL DEFAULT 1
@@ -72,17 +73,6 @@ class DatabaseHelper:
         except mysql.connector.Error as error:
             print(f"Error updating scraped_ts: {error}")
 
-    def update_is_latest(self, url):
-        """
-        set is_latest column to 0 for the given url
-        """
-
-        query = "UPDATE scraped_items SET is_latest = 0 WHERE url = %s AND is_latest = 1"
-        try:
-            self.cursor.execute(query, (url,))
-            # self.conn.commit()
-        except mysql.connector.Error as error:
-            print(f"Error updating is_latest: {error}")
 
     def get_existing_urls(self):
         """
@@ -97,6 +87,7 @@ class DatabaseHelper:
         """
         check if the new item differs from the existing item in the db 
         returns True if data has changed, False otherwise
+        ignores changes where the new value is None (e.g. hidding prices)
         """
         query = """
         SELECT price, price_per_sqr_meter 
@@ -112,7 +103,12 @@ class DatabaseHelper:
         fields_to_compare = ["price", "price_per_sqr_meter"] 
         
         for field, db_value in zip(fields_to_compare, result):
-            if str(item.get(field)) != str(db_value):
+            new_value = item.get(field)
+
+            if new_value is None:
+                continue
+
+            if str(new_value) != str(db_value):
                 return True  # data has changed
                 
         return False  # no changes detected
@@ -121,6 +117,7 @@ class DatabaseHelper:
     def insert_item(self, item, update_old):
         """
         insert new item into the database. If update_old is True, set is_latest = 0 for the latest entry with the same url.
+        Method includes updating to make the whole operation atomic.
         """
         try:
             if update_old:
@@ -129,8 +126,8 @@ class DatabaseHelper:
 
             query = """
             INSERT IGNORE INTO scraped_items (url, title, price, price_per_sqr_meter, rooms, floor, square_meters, year, address, city, area,
-            coastline_distance, gdynia_downtown_distance, gdansk_downtown_distance, sopot_downtown_distance, latitude, longitude, created_ts, scraped_ts, is_latest)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            coastline_distance, gdynia_downtown_distance, gdansk_downtown_distance, sopot_downtown_distance, latitude, longitude, bbox, created_ts, scraped_ts, is_latest)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
             """
             self.cursor.execute(query, (
@@ -151,6 +148,7 @@ class DatabaseHelper:
                 item["sopot_downtown_distance"],
                 item["latitude"],
                 item["longitude"],
+                item["bbox"],
                 item["created_ts"],
                 item["scraped_ts"],
                 item["is_latest"],

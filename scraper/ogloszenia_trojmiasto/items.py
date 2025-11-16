@@ -29,6 +29,7 @@ class OgloszenieItem(scrapy.Item):
     sopot_downtown_distance = scrapy.Field()
     latitude = scrapy.Field()
     longitude = scrapy.Field()
+    bbox = scrapy.Field()
     created_ts = scrapy.Field()
     scraped_ts = scrapy.Field()
     is_latest = scrapy.Field()

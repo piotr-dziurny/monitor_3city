@@ -2,9 +2,6 @@ import subprocess
 import time
 import logging
 from datetime import datetime, timedelta
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
-from ogloszenia_trojmiasto.spiders.ogloszenia import OgloszeniaSpider
 from pathlib import Path
 import traceback
 

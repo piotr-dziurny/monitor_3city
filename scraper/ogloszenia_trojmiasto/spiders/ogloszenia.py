@@ -1,8 +1,6 @@
 import scrapy
 from ogloszenia_trojmiasto import items
 from ogloszenia_trojmiasto.db_helper import DatabaseHelper
-import os
-import logging
 from datetime import datetime, timedelta
 
 class OgloszeniaSpider(scrapy.Spider):
@@ -44,12 +42,12 @@ class OgloszeniaSpider(scrapy.Spider):
 
         fields = {
             "title": "h1.xogIndex__title::text",
-            "price": ".xogParams p::text",
+            "price": "p[class='xogField__value xogField__value--bigPrice autolinkSafariFix '] span::text",
             "rooms": "span:contains('Liczba pokoi') + span::text",
             "floor": "span:contains('Piętro') + span::text",
             "year": "span:contains('Rok budowy') + span::text",
-            "price_per_sqr_meter": "span:contains('Cena za m') + span::text",
-            "square_meters": "span:contains('Pow. nieruchomości') + span::text",
+            "price_per_sqr_meter": "span:contains('Cena za m2') + span::text",
+            "square_meters": "span:contains('Powierzchnia') + span::text",
             "address": "i.trm.trm-location + span::text"
         }
 

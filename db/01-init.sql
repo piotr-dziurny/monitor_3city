@@ -19,7 +19,10 @@ CREATE TABLE IF NOT EXISTS scraped_items (
     sopot_downtown_distance FLOAT,
     latitude DECIMAL(15, 12),
     longitude DECIMAL(15, 12),
+    bbox VARCHAR(255),
     created_ts TIMESTAMP,
     scraped_ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_latest BOOLEAN NOT NULL DEFAULT 1
   );
+
+CREATE INDEX idx_url_is_latest ON scraped_items(url, is_latest);

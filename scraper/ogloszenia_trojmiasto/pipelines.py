@@ -94,8 +94,8 @@ class SyntheticFeaturesPipeline:
         if not address:
             self.logger.warning("Item has no address. Skipping geocoding data")
 
-        distances = get_all_geodata(address, self.coastline)
-        item.update(distances)
+        geo_data = get_all_geodata(address, self.coastline)
+        item.update(geo_data)
         return item
 
 class DatabasePipeline:
@@ -107,8 +107,7 @@ class DatabasePipeline:
         
         if url in self.db_helper.get_existing_urls():
             if self.db_helper.is_changed(url, item):
-                # data changed - update old record and insert new one:
-                self.db_helper.update_is_latest(url) # set old item to is_latest = 0
+                # data changed - insert new record with is_latest=1 and update old to is_latest=0
                 item["is_latest"] = 1 # set current item to is_latest = 1
                 self.db_helper.insert_item(item, update_old=True)
                 spider.logger.info(f"Data changed for {url} - inserted new row and updated is_latest")
