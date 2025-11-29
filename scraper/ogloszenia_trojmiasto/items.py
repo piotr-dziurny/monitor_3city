@@ -14,6 +14,7 @@ class OgloszeniaTrojmiastoItem(scrapy.Item):
 class OgloszenieItem(scrapy.Item):
     url = scrapy.Field()
     title = scrapy.Field()
+    market_type = scrapy.Field()
     price = scrapy.Field()
     rooms = scrapy.Field()
     floor = scrapy.Field()

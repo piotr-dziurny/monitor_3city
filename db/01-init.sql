@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS scraped_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     url VARCHAR(255) NOT NULL,
     title VARCHAR(255),
+    market_type VARCHAR(255),
     price FLOAT,
     price_per_sqr_meter FLOAT,
     rooms INT,

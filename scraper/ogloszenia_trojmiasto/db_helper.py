@@ -33,6 +33,7 @@ class DatabaseHelper:
             id INT AUTO_INCREMENT PRIMARY KEY,
             url VARCHAR(255) NOT NULL,
             title VARCHAR(255),
+            market_type VARCHAR(255),
             price FLOAT,
             price_per_sqr_meter FLOAT,
             rooms INT,
@@ -125,14 +126,15 @@ class DatabaseHelper:
                 self.cursor.execute(update_query, (item["url"],))
 
             query = """
-            INSERT IGNORE INTO scraped_items (url, title, price, price_per_sqr_meter, rooms, floor, square_meters, year, address, city, area,
+            INSERT IGNORE INTO scraped_items (url, title, market_type, price, price_per_sqr_meter, rooms, floor, square_meters, year, address, city, area,
             coastline_distance, gdynia_downtown_distance, gdansk_downtown_distance, sopot_downtown_distance, latitude, longitude, bbox, created_ts, scraped_ts, is_latest)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
 
             """
             self.cursor.execute(query, (
                 item["url"],
                 item["title"],
+                item["market_type"],
                 item["price"],
                 item["price_per_sqr_meter"],
                 item["rooms"],

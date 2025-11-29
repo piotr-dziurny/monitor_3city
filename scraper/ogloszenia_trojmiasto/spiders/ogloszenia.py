@@ -65,5 +65,6 @@ class OgloszeniaSpider(scrapy.Spider):
 
         ogloszenie["scraped_ts"] = datetime.now()
         ogloszenie["url"] = response.url
+        ogloszenie["market_type"] = "secondary" if "/nieruchomosci-rynek-wtorny/" in response.url else "primary"
 
         yield ogloszenie
