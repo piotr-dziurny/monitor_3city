@@ -5,101 +5,102 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import traceback
 
-# log dir setup
 log_dir = Path("/scraper/logs")
 log_dir.mkdir(exist_ok=True)
-log_file = log_dir / "scraper.log"
 
-# logger config 
-def setup_logger():
-    logger = logging.getLogger("scheduler")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
-    
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    
-    file_handler = logging.FileHandler(log_file, delay=False)
+# global logger
+logger = logging.getLogger("scheduler")
+logger.setLevel(logging.INFO)
+logger.propagate = False
+
+formatter = logging.Formatter(
+    "%(asctime)s [%(name)s] - %(levelname)-8s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+# StreamHandler -> docker logs
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+
+
+def add_file_handler(session_date, formatter):
+    """
+    adding a file handler for this current scraping session
+    """
+    log_file = log_dir / f"session_{session_date}.log"
+    file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(formatter)
-    
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(formatter)
-    
     logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
+    return file_handler
 
-    file_handler.flush()
-    
-    return logger
 
-scheduler_logger = setup_logger()
+def remove_file_handler(handler):
+    logger.removeHandler(handler)
+    handler.close()
+
 
 def run_spider():
-    """
-    run the spider; use subprocess since CrawlerProcess cannot be restarted
-    """
-    scheduler_logger.info("Starting spider...")
+    logger.info("Starting spider...")
+
     try:
-        result = subprocess.run(
+        process = subprocess.Popen(
             ["scrapy", "crawl", "ogloszenia"],
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
+            bufsize=1
         )
-        scheduler_logger.info(f"Spider stdout: {result.stdout}")
-        if result.stderr:
-                scheduler_logger.error(f"Spider stderr: {result.stderr}")
 
-        scheduler_logger.info("Spider run completed successfully")
-    except Exception as e:
-        error_info = traceback.format_exc()
-        scheduler_logger.error(f"Error running spider as subprocess: {str(e)}\n{error_info}")
-  
+        logger.info("Spider stdout:")
 
-def run_scraping_session(is_initial=False):
-    """
-    run scraping session and log its duration
-    returns end time for scheduling next run
-    """
+        if process.stdout is not None:
+            for line in process.stdout:
+                logger.info(line.rstrip())
+        else:
+            logger.warning("No stdout from spider process.")
+
+        process.wait()
+        logger.info("Spider run completed.")
+
+    except Exception:
+        logger.error(f"Error running spider:\n{traceback.format_exc()}")
+
+
+def run_scraping_session(formatter, is_initial=False):
+    start = datetime.now()
+    session_date = start.strftime("%Y-%m-%d")
     session_type = "initial" if is_initial else "scheduled"
-    start_time = datetime.now()
-    scheduler_logger.info(f"Starting {session_type} scraping session at: {start_time}")
-    
+
+    file_handler = add_file_handler(session_date, formatter)
+
+    logger.info(f"Starting {session_type} scraping session at: {start}")
+
     run_spider()
-    
-    end_time = datetime.now()
-    duration = end_time - start_time
-    scheduler_logger.info(f"{session_type.capitalize()} scraping session completed. Duration: {duration}")
-    
-    return end_time
 
-def calculate_next_run(end_time):
-    """
-    calculate and log the next run time
-    returns datetime object for next scheduled run
-    """
-    next_run = end_time.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=3)
-    scheduler_logger.info(f"Next scheduled run at: {next_run}")
+    end = datetime.now()
+    duration = end - start
 
-    return next_run
+    logger.info(f"{session_type.capitalize()} scraping session completed. Duration: {duration}")
+
+    next_run = end.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=3)
+    logger.info(f"Next scheduled run at: {next_run}")
+
+    remove_file_handler(file_handler)
+
+    return next_run 
+
 
 def main():
-    """
-    main function to run the scheduler
-    handles initial run and subsequent scheduled runs
-    """
-    scheduler_logger.info("Starting scheduler...")
-    
-    end_time = run_scraping_session(is_initial=True)
-    next_run = calculate_next_run(end_time)
-    
+    logger.info("Starting scheduler...")
+
+    next_run = run_scraping_session(formatter, is_initial=True)
+
     while True:
         if datetime.now() >= next_run:
-            end_time = run_scraping_session()
-            next_run = calculate_next_run(end_time)
-        time.sleep(60*60) # check every hour
+            next_run = run_scraping_session(formatter)
+        time.sleep(60*60)
+
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        scheduler_logger.critical(f"Critical error in scheduler: {str(e)}")
-        raise
+    main()

@@ -1,5 +1,7 @@
 FROM python:3.12.8-slim
 
+ENV PYTHONUNBUFFERED=1
+
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y procps && \

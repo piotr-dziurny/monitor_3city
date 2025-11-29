@@ -1,7 +1,6 @@
 import unicodedata
 import logging
 
-from geopy.geocoders.base import logger
 from ogloszenia_trojmiasto.geodistance import load_coastline, get_all_geodata 
 from ogloszenia_trojmiasto.db_helper import DatabaseHelper
 from datetime import datetime
@@ -13,7 +12,10 @@ import re
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 class CleaningPipeline:
-    def process_item(self, item, spider):        
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def process_item(self, item, spider):
         conversions = {
             "address": self.clean_address,
             "floor": lambda x: 0 if x == "Parter" else int(x),
@@ -26,7 +28,7 @@ class CleaningPipeline:
         try:
             item["address"] = conversions["address"](item["address"])
         except Exception as e:
-            logger.info(f"No address found in {item["url"]}: {e}")
+            self.logger.info(f"No address found in {item["url"]}: {e}")
             item["address"] = None
 
         item["created_ts"] = datetime.now()
@@ -64,7 +66,7 @@ class PricePipeline:
     Pipeline tries to fill in the missing data
     """
     def __init__(self):
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def process_item(self, item, spider):
         try:
@@ -86,8 +88,8 @@ class PricePipeline:
 
 class SyntheticFeaturesPipeline:
     def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.coastline = load_coastline() 
-        self.logger = logging.getLogger(__name__)
 
     def process_item(self, item, spider):
         address = item.get("address", None)
@@ -100,6 +102,7 @@ class SyntheticFeaturesPipeline:
 
 class DatabasePipeline:
     def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.db_helper = DatabaseHelper()
 
     def process_item(self, item, spider):
@@ -110,18 +113,18 @@ class DatabasePipeline:
                 # data changed - insert new record with is_latest=1 and update old to is_latest=0
                 item["is_latest"] = 1 # set current item to is_latest = 1
                 self.db_helper.insert_item(item, update_old=True)
-                spider.logger.info(f"Data changed for {url} - inserted new row and updated is_latest")
+                self.logger.info(f"Data changed for {url} - inserted new row and updated is_latest")
             else:
                 # data unchanged - update scraped_ts
                 self.db_helper.update_scraped_ts(url)
-                spider.logger.info(f"No data change for {url} - updated scraped_ts")
+                self.logger.info(f"No data change for {url} - updated scraped_ts")
         else:
             # new listing - insert and set is_latest = 1
             item["is_latest"] = 1
             self.db_helper.insert_item(item, update_old=False)
-            spider.logger.info(f"New entry for {url} - inserted into database")
+            self.logger.info(f"New entry for {url} - inserted into database")
             
         return item
 
-    def close_spider(self, spider):
+    def close_spider(self):
         self.db_helper.close()
